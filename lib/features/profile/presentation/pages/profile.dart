@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media_bloc/features/auth/domain/entities/app_user.dart';
 import 'package:social_media_bloc/features/auth/presentation/cubits/auth_bloc.dart';
@@ -17,13 +16,26 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late final AuthBloc authBloc = context.read<AuthBloc>();
   late final ProfileCubits profileCubits = context.read<ProfileCubits>();
-
   late AppUser user = authBloc.user!;
+  bool isEditMode = false;
+
+  // Controllers for editable fields
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController bioController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     profileCubits.getProfile(widget.uid);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    bioController.dispose();
+    locationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -31,171 +43,181 @@ class _ProfilePageState extends State<ProfilePage> {
     return BlocBuilder<ProfileCubits, ProfileState>(
       builder: (context, state) {
         if (state is ProfileLoading) {
-          return Scaffold(
-            body: const Center(child: CircularProgressIndicator()),
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
         if (state is ProfileLoaded) {
+          // Populate controllers with data
+          nameController.text = state.profileUser.name;
+          bioController.text = state.profileUser.bio ?? '';
+          locationController.text = state.profileUser.location ?? '';
+
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.background,
             appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
               title: Text(
-                user.email,
+                state.profileUser.name,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
               ),
               centerTitle: true,
               backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primaryContainer,
-                    Theme.of(context).colorScheme.background,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+              actions: [
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == "Logout") {
+                      // Handle logout
+                    }
+                  },
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      const PopupMenuItem(
+                          value: "Settings", child: Text("Settings")),
+                      const PopupMenuItem(
+                          value: "Logout", child: Text("Logout")),
+                    ];
+                  },
                 ),
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Profile Picture Section
-                      Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                        ),
-                        child: ClipOval(
-                          child: Image.network(
-                            state.profileUser.photoUrl ??
-                                'https://i.pravatar.cc/300',
-                            fit: BoxFit.cover,
+              ],
+            ),
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Profile Picture Section
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          width: 150,
+                          height: 150,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              state.profileUser.photoUrl ??
+                                  'https://i.pravatar.cc/300',
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Name Section
-                      Text(
-                        state.profileUser.name,
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Bio Section with Design
-                      Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: FloatingActionButton.small(
+                            onPressed: () {
+                              // Handle profile photo update
+                            },
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: const Icon(Icons.camera_alt,
+                                color: Colors.white),
+                          ),
                         ),
-                        elevation: 4,
-                        margin: const EdgeInsets.symmetric(vertical: 16),
-                        child: Stack(
-                          children: [
-                            // Background Image
-                            Container(
-                              height: 150,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                image: const DecorationImage(
-                                  image: NetworkImage(
-                                    'https://images.pexels.com/photos/414612/pexels-photo-414612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-                                  ),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                            // Text Overlay on the Image
-                            Container(
-                              height: 150,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.black.withOpacity(0.6),
-                                    Colors.transparent,
-                                  ],
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Align(
-                                  alignment: Alignment.bottomLeft,
-                                  child: Text(
-                                    state.profileUser.bio!,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge
-                                        ?.copyWith(
-                                          color: Colors.white,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                  ),
-                                ),
-                              ),
+                    // Editable Name Section
+                    _buildEditableField(
+                      label: 'Name',
+                      controller: nameController,
+                      isEditMode: isEditMode,
+                      context: context,
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Editable Bio Section
+                    _buildEditableField(
+                      label: 'Bio',
+                      controller: bioController,
+                      isEditMode: isEditMode,
+                      maxLines: 3,
+                      context: context,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Other Editable Details Section
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildEditableField(
+                              label: 'Location',
+                              controller: locationController,
+                              isEditMode: isEditMode,
+                              context: context,
+                            ),
+                            const Divider(),
+                            _buildProfileDetail(
+                              icon: Icons.email,
+                              label: 'Email',
+                              value: state.profileUser.email!,
+                              context: context,
+                            ),
+                            const Divider(),
+                            _buildProfileDetail(
+                              icon: Icons.perm_identity,
+                              label: 'User ID',
+                              value: state.profileUser.id!,
+                              context: context,
                             ),
                           ],
                         ),
                       ),
-
-                      // Other Details Section
-                      Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildProfileDetail(
-                                icon: Icons.email,
-                                label: 'Email',
-                                value: state.profileUser.email!,
-                                context: context,
-                              ),
-                              const Divider(),
-                              _buildProfileDetail(
-                                icon: Icons.location_on,
-                                label: 'Location',
-                                value: state.profileUser.location!,
-                                context: context,
-                              ),
-                              const Divider(),
-                              _buildProfileDetail(
-                                icon: Icons.perm_identity,
-                                label: 'User ID',
-                                value: state.profileUser.id!,
-                                context: context,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
+            floatingActionButton: isEditMode
+                ? FloatingActionButton.extended(
+                    onPressed: () {
+                      // Save changes
+                      profileCubits.updateProfile(
+                        newBio: bioController.text,
+                        newLocation: locationController.text,
+                        newPhoto: state.profileUser.photoUrl,
+                        newName: nameController.text,
+                        uid: widget.uid,
+                      );
+                      setState(() {
+                        isEditMode = false;
+                      });
+                    },
+                    heroTag: 'saveProfileButton', // Assign a unique tag
+                    icon: const Icon(Icons.check),
+                    label: const Text("Save"),
+                  )
+                : FloatingActionButton(
+                    onPressed: () {
+                      setState(() {
+                        isEditMode = true;
+                      });
+                    },
+                    tooltip: "Edit Profile",
+                    heroTag: 'editProfileButton', // Assign a unique tag
+                    child: const Icon(Icons.edit),
+                  ),
           );
         } else {
           return const Scaffold(
@@ -205,6 +227,44 @@ class _ProfilePageState extends State<ProfilePage> {
           );
         }
       },
+    );
+  }
+
+  Widget _buildEditableField({
+    required String label,
+    required TextEditingController controller,
+    required bool isEditMode,
+    int maxLines = 1,
+    required BuildContext context,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
+        ),
+        const SizedBox(height: 4),
+        isEditMode
+            ? TextFormField(
+                controller: controller,
+                maxLines: maxLines,
+                decoration: InputDecoration(
+                  hintText: 'Enter $label',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              )
+            : Text(
+                controller.text,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+      ],
     );
   }
 

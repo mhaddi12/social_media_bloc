@@ -29,7 +29,8 @@ class ProfileCubits extends Cubit<ProfileState> {
       {required String uid,
       String? newBio,
       String? newPhoto,
-      String? newLocation}) async {
+      String? newLocation,
+      String? newName}) async {
     try {
       emit(ProfileLoading());
       final currentUser = await profileRepo.getProfile(uid);
@@ -37,7 +38,8 @@ class ProfileCubits extends Cubit<ProfileState> {
         final newProfileUser = currentUser.copyWith(
             bio: newBio ?? currentUser.bio,
             photoUrl: newPhoto ?? currentUser.photoUrl,
-            location: newLocation ?? currentUser.location);
+            location: newLocation ?? currentUser.location,
+            name: newName ?? currentUser.name);
         await profileRepo.updateProfile(newProfileUser);
         await getProfile(uid);
         emit(ProfileLoaded(profileUser: newProfileUser));
